@@ -15,12 +15,28 @@ public:
   Program(GLuint);
 };
 
+class VertexArray : public raii::AutoDeletable<GLuint> {
+public:
+  VertexArray(GLuint);
+};
+
+class Buffer : public raii::AutoDeletable<GLuint> {
+public:
+  Buffer(GLuint);
+};
+
 auto createProgram() -> Program;
 auto createProgram_(GLuint vertexShader, GLuint fragmentShader) -> Program;
 
 auto createShader(GLenum type) -> Shader;
 auto createShader_(GLenum type, GLsizei count, const GLchar *const *string,
 		   const GLint *length) -> Shader;
+
+auto GenVertexArray() -> VertexArray;
+auto GenVertexArrays(GLsizei n) -> std::vector<VertexArray>;
+
+auto GenBuffer() -> Buffer;
+auto GenBuffers(GLsizei n) -> std::vector<Buffer>;
 
 } // namespace gl
 
