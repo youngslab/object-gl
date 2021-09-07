@@ -2,6 +2,9 @@
 #include <GLES3/gl3.h>
 #include <fmt/format.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 namespace gl {
 
 Shader::Shader(GLuint shader)
@@ -21,11 +24,27 @@ Buffer::Buffer(GLuint buffer)
     : raii::AutoDeletable<GLuint>(
 	  buffer, [](auto buffer) { glDeleteBuffers(1, &buffer); }) {}
 
+Texture::Texture(GLuint texture)
+    : raii::AutoDeletable<GLuint>(
+	  texture, [](auto texture) { glDeleteBuffers(1, &texture); }) {}
+
 // create programs
 auto createProgram() -> Program { return Program(glCreateProgram()); }
 
 auto createShader(GLenum type) -> Shader {
   return Shader(glCreateShader(type));
+}
+
+auto createProgram_(std::string const &vertex, std::string const &fragment)
+    -> Program {
+
+  auto vinterm = vertex.c_str();
+  auto vert = gl::createShader_(GL_VERTEX_SHADER, 1, &vinterm, nullptr);
+
+  auto finterm = fragment.c_str();
+  auto frag = gl::createShader_(GL_FRAGMENT_SHADER, 1, &finterm, nullptr);
+
+  return gl::createProgram_(vert, frag);
 }
 
 auto createProgram_(GLuint vertexShader, GLuint fragmentShader) -> Program {
@@ -62,21 +81,21 @@ auto createShader_(GLenum type, GLsizei count, const GLchar *const *string,
     char log[1000];
     GLsizei len;
     glGetShaderInfoLog(shader, 1000, &len, log);
-    throw std::runtime_error(
-	fmt::format("ERROR: Failed to compile shader code. glError={}, log=\"{}\" \n{}",
-		    glGetError(), log, string[0]));
+    throw std::runtime_error(fmt::format(
+	"ERROR: Failed to compile shader code. glError={}, log=\"{}\" \n{}",
+	glGetError(), log, string[0]));
   }
   return Shader(shader);
 }
 
 // Gen-Functions
-auto GenVertexArray() -> VertexArray {
+auto genVertexArray() -> VertexArray {
   GLuint vao;
   glGenVertexArrays(1, &vao);
   return VertexArray(vao);
 }
 
-auto GenVertexArrays(GLsizei n) -> std::vector<VertexArray> {
+auto genVertexArrays(GLsizei n) -> std::vector<VertexArray> {
   std::vector<GLuint> vaos(n);
   glGenVertexArrays(n, vaos.data());
 
@@ -87,14 +106,14 @@ auto GenVertexArrays(GLsizei n) -> std::vector<VertexArray> {
   return res;
 }
 
-auto GenBuffer() -> Buffer {
+auto genBuffer() -> Buffer {
   GLuint bo;
   glGenBuffers(1, &bo);
   return Buffer(bo);
 }
 
-auto GenBuffers(GLsizei n) -> std::vector<Buffer> {
-  std::vector<GLuint> bos;
+auto genBuffers(GLsizei n) -> std::vector<Buffer> {
+  std::vector<GLuint> bos(n);
   glGenBuffers(n, bos.data());
 
   std::vector<Buffer> res;
@@ -103,5 +122,47 @@ auto GenBuffers(GLsizei n) -> std::vector<Buffer> {
 
   return res;
 }
+
+auto genTexture() -> Texture {
+  GLuint texture = 0;
+  glGenTextures(1, &texture);
+  return Texture(texture);
+}
+
+auto genTextures(GLsizei n) -> std::vector<Texture> {
+  std::vector<GLuint> ts(n);
+  glGenTextures(n, ts.data());
+
+  std::vector<Texture> res;
+  std::transform(ts.begin(), ts.end(), res.begin(),
+		 [](auto t) { return Texture(t); });
+
+  return res;
+}
+
+auto genTexture_(std::string const &filepath) -> Texture {
+  unsigned int texture;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+
+  int width, height, nrChannels;
+  stbi_set_flip_vertically_on_load(true);
+  unsigned char *data =
+      stbi_load(filepath.c_str(), &width, &height, &nrChannels, 0);
+
+  if (!data)
+    throw std::runtime_error(
+	fmt::format("Failed to load an image from {}", filepath));
+
+  GLenum format = nrChannels == 4 ? GL_RGBA : GL_RGB;
+  glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format,
+	       GL_UNSIGNED_BYTE, data);
+
+  glGenerateMipmap(GL_TEXTURE_2D);
+  stbi_image_free(data);
+
+  return Texture(texture);
+}
+
 } // namespace gl
 

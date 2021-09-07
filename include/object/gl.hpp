@@ -25,18 +25,29 @@ public:
   Buffer(GLuint);
 };
 
+class Texture : public raii::AutoDeletable<GLuint> {
+public:
+  Texture(GLuint);
+};
+
 auto createProgram() -> Program;
 auto createProgram_(GLuint vertexShader, GLuint fragmentShader) -> Program;
+auto createProgram_(std::string const &vertex, std::string const &fragment)
+    -> Program;
 
 auto createShader(GLenum type) -> Shader;
 auto createShader_(GLenum type, GLsizei count, const GLchar *const *string,
 		   const GLint *length) -> Shader;
 
-auto GenVertexArray() -> VertexArray;
-auto GenVertexArrays(GLsizei n) -> std::vector<VertexArray>;
+auto genVertexArray() -> VertexArray;
+auto genVertexArrays(GLsizei n) -> std::vector<VertexArray>;
 
-auto GenBuffer() -> Buffer;
-auto GenBuffers(GLsizei n) -> std::vector<Buffer>;
+auto genBuffer() -> Buffer;
+auto genBuffers(GLsizei n) -> std::vector<Buffer>;
+
+auto genTexture() -> Texture;
+auto genTexture_(std::string const &filepath) -> Texture;
+auto genTextures(GLsizei n) -> std::vector<Texture>;
 
 } // namespace gl
 
