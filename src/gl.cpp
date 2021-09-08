@@ -28,6 +28,16 @@ Texture::Texture(GLuint texture)
     : raii::AutoDeletable<GLuint>(
 	  texture, [](auto texture) { glDeleteBuffers(1, &texture); }) {}
 
+Framebuffer::Framebuffer(GLuint framebuffer)
+    : raii::AutoDeletable<GLuint>(framebuffer, [](auto framebuffer) {
+	glDeleteFramebuffers(1, &framebuffer);
+      }) {}
+
+Renderbuffer::Renderbuffer(GLuint renderbuffer)
+    : raii::AutoDeletable<GLuint>(renderbuffer, [](auto renderbuffer) {
+	glDeleteRenderbuffers(1, &renderbuffer);
+      }) {}
+
 // create programs
 auto createProgram() -> Program { return Program(glCreateProgram()); }
 
@@ -162,6 +172,56 @@ auto genTexture_(std::string const &filepath) -> Texture {
   stbi_image_free(data);
 
   return Texture(texture);
+}
+
+auto genFramebuffer() -> Framebuffer {
+  GLuint framebuffer = 0;
+  glGenFramebuffers(1, &framebuffer);
+  return Framebuffer(framebuffer);
+}
+
+auto genFramebuffers(GLsizei n) -> std::vector<Framebuffer> {
+
+  std::vector<GLuint> fbs(n);
+  glGenTextures(n, fbs.data());
+
+  std::vector<Framebuffer> res;
+  std::transform(fbs.begin(), fbs.end(), res.begin(),
+		 [](auto t) { return Framebuffer(t); });
+
+  return res;
+}
+
+auto genRenderbuffer() -> Renderbuffer {
+  GLuint renderbuffer = 0;
+  glGenRenderbuffers(1, &renderbuffer);
+  return Renderbuffer(renderbuffer);
+}
+
+auto genRenderbuffers(GLsizei n) -> std::vector<Renderbuffer> {
+
+  std::vector<GLuint> rbs(n);
+  glGenTextures(n, rbs.data());
+
+  std::vector<Renderbuffer> res;
+  std::transform(rbs.begin(), rbs.end(), res.begin(),
+		 [](auto r) { return Renderbuffer(r); });
+
+  return res;
+}
+
+// --------------------Generic fucntions ---------
+
+auto bind(Framebuffer const &f) -> void {
+  glBindFramebuffer(GL_FRAMEBUFFER, f);
+}
+
+auto bind(GLenum target, Framebuffer const &f) -> void {
+  glBindFramebuffer(target, f);
+}
+
+auto bind(Renderbuffer const &r) -> void {
+  glBindRenderbuffer(GL_RENDERBUFFER, r);
 }
 
 } // namespace gl
