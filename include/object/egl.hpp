@@ -2,6 +2,7 @@
 
 #include <raii/raii.hpp>
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
 
 namespace egl {
 
@@ -25,6 +26,12 @@ public:
   Context(EGLContext);
 };
 
+class ImageKHR : public raii::AutoDeletable<EGLImageKHR> {
+public:
+  using raii::AutoDeletable<EGLImageKHR>::AutoDeletable;
+  ImageKHR(Display, EGLImageKHR image);
+};
+
 template <typename T> auto release(void *) -> void;
 template <> inline auto release<Display>(EGLDisplay display) -> void {
   eglTerminate(display);
@@ -44,9 +51,13 @@ inline auto release<Context>(EGLDisplay display, EGLContext context) -> void {
 auto createContext(Display dpy, EGLConfig config, Context share_context,
 		   const EGLint *attrib_list) -> Context;
 
-auto createWindowSurface_(Display const &dpy, EGLConfig config,
-			  EGLNativeWindowType win, const EGLint *attrib_list)
+auto createPlatformWindowSurfaceExt_(Display const &dpy, EGLConfig config,
+				     void *win, const EGLint *attrib_list)
     -> Surface;
+
+auto createImageKHR(Display const &dpy, EGLContext ctx, EGLenum target,
+		    EGLClientBuffer buffer, const EGLint *attrib_list)
+    -> ImageKHR;
 
 auto getPlatformDisplay(EGLenum platform, void *native_display,
 			const EGLint *attrib_list) -> Display;
